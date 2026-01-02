@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>牛只资料库</title>
+  <meta name="theme-color" content="#2f855a">
+  <link rel="manifest" href="./manifest.json">
+  <style>
+    :root {
+      --bg:#f7fafc; --card:#fff; --text:#1a202c; --muted:#4a5568;
+      --brand:#2f855a; --border:#e2e8f0;
+      --shadow: 0 10px 25px rgba(0,0,0,.08);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body {
+      margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC","Noto Sans SC","Microsoft YaHei", Arial, sans-serif;
+      background:var(--bg); color:var(--text);
+    }
+    header {
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(247,250,252,.9);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 14px 16px; }
+    .title {
+      display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+    }
+    h1 { margin:0; font-size: 18px; letter-spacing: .5px; }
+    .controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    input[type="search"] {
+      width: min(520px, 72vw);
+      padding: 10px 12px; border:1px solid var(--border);
+      border-radius: 999px; outline: none; background: #fff;
+    }
+    .pill {
+      padding: 8px 10px; border:1px solid var(--border);
+      border-radius: 999px; background:#fff; font-size: 13px; color: var(--muted);
+    }
+    main .wrap { padding-top: 18px; padding-bottom: 28px; }
+    .grid {
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: var(--card);
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      display:flex; flex-direction:column;
+      transition: transform .08s ease;
+    }
+    .card:active { transform: scale(.99); }
+    .thumb {
+      position:relative;
+      aspect-ratio: 4 / 5;
+      background:#edf2f7;
+      overflow:hidden;
+      cursor: zoom-in;
+    }
+    .thumb img {
+      width:100%; height:100%; object-fit: cover; display:block;
+    }
+    .meta { padding: 12px 12px 14px; display:flex; flex-direction:column; gap:6px; }
+    .name { display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; }
+    .name strong { font-size: 16px; }
+    .name span { font-size: 12px; color: var(--muted); }
+    .kv { font-size: 13px; color: var(--muted); line-height: 1.35; }
+    .kv b { color: var(--text); font-weight: 600; }
+    .btnrow { display:flex; gap:10px; margin-top: 8px; flex-wrap:wrap; }
+    button {
+      border:1px solid var(--border); background:#fff; color: var(--text);
+      padding: 8px 10px; border-radius: 10px; cursor:pointer; font-size: 13px;
+    }
+    button.primary {
+      border-color: rgba(47,133,90,.35);
+      background: rgba(47,133,90,.10);
+      color: var(--brand);
+    }
+    footer {
+      color: var(--muted); font-size: 12px;
+      padding: 16px 0 24px;
+    }
+    /* Modal */
+    .modal {
+      position: fixed; inset: 0; display:none; align-items:center; justify-content:center;
+      background: rgba(0,0,0,.65); z-index: 100;
+      padding: 18px;
+    }
+    .modal.open { display:flex; }
+    .modal-inner {
+      width: min(980px, 96vw);
+      max-height: 92vh;
+      background:#0b0f14;
+      border-radius: 18px;
+      overflow:hidden;
+      box-shadow: 0 20px 70px rgba(0,0,0,.45);
+      display:flex; flex-direction:column;
+    }
+    .modal-bar {
+      display:flex; justify-content:space-between; align-items:center;
+      padding: 10px 12px; color:#e2e8f0; background: rgba(0,0,0,.35);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      gap: 10px; flex-wrap:wrap;
+    }
+    .modal-bar .left { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .modal-bar .tag {
+      font-size: 12px; color:#a0aec0; border:1px solid rgba(255,255,255,.15);
+      padding: 4px 8px; border-radius: 999px;
+    }
+    .modal-img {
+      width:100%; height: 100%;
+      background:#0b0f14;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .modal-img img {
+      max-width: 100%;
+      max-height: 78vh;
+      object-fit: contain;
+      display:block;
+    }
+    a.copylink { color:#90cdf4; text-decoration:none; font-size: 13px; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap title">
+    <h1>牛只资料库</h1>
+    <div class="controls">
+      <input id="q" type="search" placeholder="搜索：名字 / 牛号 / 品种（例如：高德、CZ、夏洛莱）" />
+      <span class="pill" id="count">加载中…</span>
+      <span class="pill" id="cacheStatus">缓存：未检测</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div class="grid" id="grid"></div>
+    <footer>
+      使用说明：把整个文件夹放到你自己的服务器/网盘/电脑里，打开 index.html 即可。首次打开会自动缓存图片，后续打开更快（需要浏览器支持 Service Worker；本地直接双击打开可能不生效，建议用小工具起一个本地服务）。
+    </footer>
+  </div>
+</main>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="预览">
+  <div class="modal-inner">
+    <div class="modal-bar">
+      <div class="left">
+        <strong id="mTitle">预览</strong>
+        <span class="tag" id="mSub"></span>
+        <span class="tag" id="mId"></span>
+      </div>
+      <div class="right">
+        <a class="copylink" href="#" id="copyUrl">复制此牛链接</a>
+        <button id="closeBtn">关闭</button>
+      </div>
+    </div>
+    <div class="modal-img">
+      <img id="mImg" alt="预览图" />
+    </div>
+  </div>
+</div>
+
+<script>
+  const $ = (s) => document.querySelector(s);
+  const grid = $("#grid");
+  const q = $("#q");
+  const count = $("#count");
+  const cacheStatus = $("#cacheStatus");
+
+  function esc(s){ return (s ?? "").toString().replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+
+  function toKey(item) {
+    return `${item.name} ${item.id} ${item.breed} ${item.dob}`.toLowerCase();
+  }
+
+  function cardTemplate(item) {
+    return `
+      <article class="card" data-key="${esc(toKey(item))}" data-id="${esc(item.id)}">
+        <div class="thumb" data-open="${esc(item.file)}" data-title="${esc(item.name)}" data-sub="${esc(item.breed)}" data-id="${esc(item.id)}">
+          <img loading="lazy" src="./${esc(item.file)}" alt="${esc(item.name)}" />
+        </div>
+        <div class="meta">
+          <div class="name">
+            <strong>${esc(item.name)}</strong>
+            <span>${esc(item.breed)}</span>
+          </div>
+          <div class="kv"><b>牛号：</b>${esc(item.id)}</div>
+          <div class="kv"><b>出生：</b>${esc(item.dob)}</div>
+          <div class="btnrow">
+            <button class="primary" data-copy="${esc(item.id)}">复制牛号</button>
+            <button data-copylink="${esc(item.id)}">复制链接</button>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  async function load() {
+    const res = await fetch("./data.json");
+    const data = await res.json();
+    grid.innerHTML = data.map(cardTemplate).join("");
+    count.textContent = `共 ${data.length} 头`;
+    bind(data);
+
+    // deep-link open
+    if (location.hash) {
+      const id = decodeURIComponent(location.hash.slice(1));
+      const el = document.querySelector(`[data-id="${CSS.escape(id)}"] .thumb`);
+      if (el) el.click();
+    }
+  }
+
+  function bind(data) {
+    q.addEventListener("input", () => {
+      const needle = q.value.trim().toLowerCase();
+      const cards = [...document.querySelectorAll(".card")];
+      let shown = 0;
+      for (const c of cards) {
+        const ok = !needle || c.dataset.key.includes(needle);
+        c.style.display = ok ? "" : "none";
+        if (ok) shown++;
+      }
+      count.textContent = `显示 ${shown} / ${data.length}`;
+    });
+
+    grid.addEventListener("click", async (e) => {
+      const btn = e.target.closest("button");
+      if (btn && btn.dataset.copy) {
+        await navigator.clipboard.writeText(btn.dataset.copy);
+        btn.textContent = "已复制";
+        setTimeout(()=>btn.textContent="复制牛号", 800);
+      }
+      if (btn && btn.dataset.copylink) {
+        const link = `${location.origin}${location.pathname}#${encodeURIComponent(btn.dataset.copylink)}`;
+        await navigator.clipboard.writeText(link);
+        btn.textContent = "已复制";
+        setTimeout(()=>btn.textContent="复制链接", 800);
+      }
+    });
+
+    grid.addEventListener("click", (e) => {
+      const t = e.target.closest(".thumb");
+      if (!t) return;
+      openModal({
+        file: t.dataset.open,
+        title: t.dataset.title,
+        sub: t.dataset.sub,
+        id: t.dataset.id
+      });
+    });
+  }
+
+  const modal = $("#modal");
+  const mImg = $("#mImg");
+  const mTitle = $("#mTitle");
+  const mSub = $("#mSub");
+  const mId = $("#mId");
+  const closeBtn = $("#closeBtn");
+  const copyUrl = $("#copyUrl");
+
+  function openModal({file, title, sub, id}) {
+    mImg.src = "./" + file;
+    mTitle.textContent = title;
+    mSub.textContent = sub;
+    mId.textContent = "牛号：" + id;
+    modal.classList.add("open");
+    history.replaceState(null, "", "#" + encodeURIComponent(id));
+  }
+  function closeModal() { modal.classList.remove("open"); }
+
+  closeBtn.addEventListener("click", closeModal);
+  modal.addEventListener("click", (e)=>{ if (e.target === modal) closeModal(); });
+  document.addEventListener("keydown", (e)=>{ if (e.key === "Escape") closeModal(); });
+
+  copyUrl.addEventListener("click", async (e)=>{
+    e.preventDefault();
+    const id = decodeURIComponent(location.hash.slice(1) || "");
+    const link = `${location.origin}${location.pathname}#${encodeURIComponent(id)}`;
+    await navigator.clipboard.writeText(link);
+    copyUrl.textContent = "已复制";
+    setTimeout(()=>copyUrl.textContent="复制此牛链接", 900);
+  });
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", async () => {
+      try {
+        await navigator.serviceWorker.register("./sw.js");
+        cacheStatus.textContent = "缓存：已开启";
+      } catch (e) {
+        cacheStatus.textContent = "缓存：失败";
+      }
+    });
+  } else {
+    cacheStatus.textContent = "缓存：不支持";
+  }
+
+  load();
+</script>
+</body>
+</html>

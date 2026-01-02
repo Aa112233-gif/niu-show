@@ -1,0 +1,9 @@
+{
+  "name": "牛只资料库",
+  "short_name": "牛资料",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2f855a",
+  "icons": []
+}
